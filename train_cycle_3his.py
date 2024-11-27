@@ -43,7 +43,7 @@ if __name__ == '__main__':
         #     p.join()
         # prepare_and_write()
         # # 多進程 self_play 結束後，執行訓練        
-        # train()
+        train()
         # 多進程執行evaluate
         evaluate_processes = 4
         _, _, _, _, update = evaluate_network_multiprocess(evaluate_processes)
