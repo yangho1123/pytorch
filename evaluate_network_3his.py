@@ -32,7 +32,7 @@ def evaluate_network(index, points_latest, points_best, no1_latest, no1_best):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 载入模型
-    model_latest = torch.jit.load('./model/1116maxn/22layers/best.pt').to(device)
+    model_latest = torch.jit.load('./model/lab/1201/22layers/best.pt').to(device)
     model_best = torch.jit.load('./model/1106/40layers/best_val.pt').to(device)
     # 評估模式
     # model_latest.eval()

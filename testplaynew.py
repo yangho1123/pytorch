@@ -1,10 +1,12 @@
 from game_nogroup import State
-from game_nogroup import random_action, maxn_action, maxn_actionnw, TEMPERATURE
+from game_nogroup import random_action, maxn_action, maxn_actionnw
 import torch
 from pv_mcts_3his_1value_test import pv_mcts_action, PV_EVALUATE_COUNT
 import time
 import statistics
 import numpy as np
+
+TEMPERATURE = 1.0
 
 def calculate_points(state):
     return state.finish()
@@ -17,9 +19,9 @@ def play(next_actions):  # 傳進動作順序必為紅、綠、藍
         next_action = next_actions[current_player]  # 根據玩家順序選擇對應動作函式
         action = next_action(state)  # 執行動作
         state = state.next(action)  # 更新狀態
-    mine_pieces = state.piece_count(state.mine_pieces)  # 紅色棋子數
-    next_pieces = state.piece_count(state.next_pieces)  # 綠色棋子數
-    prev_pieces = state.piece_count(state.prev_pieces)  # 藍色棋子數
+    mine_pieces = state.piece_count(state.mine_pieces)  
+    next_pieces = state.piece_count(state.next_pieces)  
+    prev_pieces = state.piece_count(state.prev_pieces)  
     if state.get_player_order() == 0: # red
         red_pieces = mine_pieces
         green_pieces = next_pieces
@@ -40,24 +42,24 @@ def play(next_actions):  # 傳進動作順序必為紅、綠、藍
 if __name__ == '__main__': # 我方不等於state.mine_pieces
     game_count = 25
     print("模擬次數:", PV_EVALUATE_COUNT)
-    model_path = './model/1116maxn/22layers/best.pt'              #22layers+512filters  學習率0.01
+    model_path = './model/lab/1201/22layers/best.pt'              #22layers+512filters  學習率0.01
     model_path2 = './model/1106/40layers/best_val.pt'
     model = torch.jit.load(model_path) 
     model2 = torch.jit.load(model_path2) 
     #init_model = torch.jit.load(init_model_path)
     #maxnA = maxn_action(depth=3)
     #maxnB = maxn_action(depth=3)
-    pv_mctsA = pv_mcts_action(model, TEMPERATURE)
-    pv_mctsB = pv_mcts_action(model2, TEMPERATURE)
+    pv_mcts_latest = pv_mcts_action(model, TEMPERATURE)
+    pv_mcts_best = pv_mcts_action(model2, TEMPERATURE)      #改成動態調整溫度
     random = random_action
     #pv_mcts2 = pv_mcts_action(init_model, TEMPERATURE)
     #win_count_pv_mcts = 0
-    #possible_players = [[maxnA, pv_mctsA, random], [maxnA, random, pv_mctsA], 
-    #                    [pv_mctsA, maxnA, random], [random, maxnA, pv_mctsA],
-    #                    [pv_mctsA, random, maxnA], [random, pv_mctsA, maxnA]]
-    possible_players = [[pv_mctsB, pv_mctsA, random], [pv_mctsB, random, pv_mctsA], 
-                        [pv_mctsA, pv_mctsB, random], [random, pv_mctsB, pv_mctsA],
-                        [pv_mctsA, random, pv_mctsB], [random, pv_mctsA, pv_mctsB]]
+    #possible_players = [[maxnA, pv_mcts_latest, random], [maxnA, random, pv_mcts_latest], 
+    #                    [pv_mcts_latest, maxnA, random], [random, maxnA, pv_mcts_latest],
+    #                    [pv_mcts_latest, random, maxnA], [random, pv_mcts_latest, maxnA]]
+    possible_players = [[pv_mcts_best, pv_mcts_latest, random], [pv_mcts_best, random, pv_mcts_latest], 
+                        [pv_mcts_latest, pv_mcts_best, random], [random, pv_mcts_best, pv_mcts_latest],
+                        [pv_mcts_latest, random, pv_mcts_best], [random, pv_mcts_latest, pv_mcts_best]]
     win_maxn = 0
     win_maxn_colors = [0, 0, 0]
     win_random = 0
@@ -79,22 +81,22 @@ if __name__ == '__main__': # 我方不等於state.mine_pieces
             results = play(players)
             game_time = time.time() - start_time
              # 計算勝利玩家
-            winner_index = np.argmax(np.array(results))
+            winner_index = np.argmax(np.array(results))     # 贏家的索引
             winner = players[winner_index]
 
             # 根據函數對應顯示策略名稱
             player_strategies = {
-                pv_mctsB: "PV_MCTSB",
-                pv_mctsA: "PV_MCTSA",
+                pv_mcts_best: "PV_MCTSB",
+                pv_mcts_latest: "PV_MCTSA",
                 random: "Random"
             }
             strategies_used = [player_strategies[player] for player in players]
              
             # 統計勝利次數
-            if winner == pv_mctsB:
+            if winner == pv_mcts_best:
                 win_pvB += 1
                 win_pvB_colors[winner_index] += 1   
-            elif winner == pv_mctsA:
+            elif winner == pv_mcts_latest:
                 win_pvA += 1
                 win_pvA_colors[winner_index] += 1   
             # elif winner == maxnA:

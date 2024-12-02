@@ -56,7 +56,7 @@ class DualNetwork(nn.Module):
         self.policy_head_conv = nn.Conv2d(filters, 2, kernel_size=1)  # 1x1 conv
         self.policy_head_bn = nn.BatchNorm2d(2)
         self.policy_head_activation = nn.ReLU()
-        self.dropout_fc = nn.Dropout(p=0.5)
+        self.policy_dropout = nn.Dropout(p=0.5)
         self.policy_head_fc = nn.Linear(2 * height * width, output_size)
         
         # Value Head Adjustment
@@ -65,7 +65,7 @@ class DualNetwork(nn.Module):
         self.value_head_activation = nn.ReLU()
         self.value_head_fc1 = nn.Linear(height * width, 256)
         self.value_head_activation2 = nn.ReLU()
-        self.dropout_fc = nn.Dropout(p=0.5)
+        self.value_dropout = nn.Dropout(p=0.5)
         self.value_head_fc2 = nn.Linear(256, 1)
         self.value_head_tanh = nn.Tanh()
 
@@ -79,6 +79,7 @@ class DualNetwork(nn.Module):
         p = self.policy_head_bn(p)
         p = self.policy_head_activation(p)
         p = p.view(p.size(0), -1)  # Flatten
+        p = self.policy_dropout(p)
         p = self.policy_head_fc(p)
         # p = F.softmax(p, dim=1)
         
@@ -89,6 +90,7 @@ class DualNetwork(nn.Module):
         v = v.view(v.size(0), -1)  # Flatten
         v = self.value_head_fc1(v)
         v = self.value_head_activation2(v)
+        v = self.value_dropout(v) 
         v = self.value_head_fc2(v)
         v = self.value_head_tanh(v)
         return p, v
@@ -105,5 +107,5 @@ if __name__ == '__main__':
     # Initialize model with global variables
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE)
     script_model = torch.jit.script(model)
-    script_model.save('./model/1116maxn/22layers/best.pt')
+    script_model.save('./model/1201/22layers/best.pt')
     
