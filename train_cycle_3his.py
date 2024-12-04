@@ -14,7 +14,7 @@ def self_play_wrapper(i):
     print("self_play() time: {:.2f} seconds".format(time.time() - start_time))
 
 def prepare_and_write():
-    history = load_data(5)   #載入歷史資料(筆數)
+    history = load_data(4)   #載入歷史資料(筆數)
     prepared_history = prepare_data(history)    # 重塑歷史資料
     write_prepared_data(prepared_history)   # 寫入重塑好的歷史資料檔案
 
@@ -41,9 +41,9 @@ if __name__ == '__main__':
 
         # for p in processes:
         #     p.join()
-        # prepare_and_write()
-        # # 多進程 self_play 結束後，執行訓練        
-        # train()
+        prepare_and_write()
+        # 多進程 self_play 結束後，執行訓練        
+        train()
         # 多進程執行evaluate
         evaluate_processes = 4
         _, _, _, _, update = evaluate_network_multiprocess(evaluate_processes)

@@ -15,7 +15,7 @@ def get_device():
     return device
 
 def predict(model, state, path): # 利用對偶網路做下一步的預測    
-    history_length = 7
+    history_length = 8
     board_states = []
     # 輸入統一為紅、綠、藍
     # Retrieve the last few states from the path

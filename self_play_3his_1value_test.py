@@ -28,32 +28,30 @@ def first_player_value(ended_state):  # 計算先手的局勢價值
 # 印出history檢查用
 def save_history_to_text_file(history, filename="game_history.txt"):
     with open(filename, "w") as file:
-        for step, data in enumerate(history):
+        for data in history:
             state_repr, policies, value = data
-            # 将状态矩阵、策略和值格式化为字符串
-            state_str = "\n".join([' '.join(map(str, row)) for row in state_repr])
-            policies_str = ' '.join(map(str, policies))
-            value_str = str(value)
+            # 将状态矩阵、策略和值转换为字符串
+            state_str = "\n".join([' '.join(map(str, row)) for row in state_repr])  # 转换状态矩阵为字符串
+            policies_str = ' '.join(map(str, policies))  # 转换策略为字符串
+            value_str = str(value)  # 转换值为字符串
             # 写入文件
-            file.write(f"Step {step + 1}:\n")
-            file.write("State:\n" + state_str + "\n")
-            file.write("Policies: " + policies_str + "\n")
-            file.write("Value: " + value_str + "\n")
-            file.write("-" * 40 + "\n\n")
+            file.write(state_str + "\n")  # 写入状态矩阵
+            file.write(policies_str + "\n")  # 写入策略
+            file.write(value_str + "\n\n")  # 写入值并添加空行分隔
 
 def play(model, next_actions): 
-    filename="state8.txt"
+    filename="12步結束之後盤面(輪到紅色還沒下).txt"
     history = []
     state = State()         # 產生新的對局   
     round = 0
-    action_counts14 = 0
+    action_counts0to11 = 0
     action_counts = 0
     while True:
         if state.is_done():
             break
-        if round == 9:
+        if round == 12:         # 印出round11結束後(第13步還沒下棋)的盤面
             with open(filename, "a") as file:
-                file.write(f"Step {round+1}:\n")
+                file.write(f"Round {round+1}:\n")
                 board_str = str(state)
                 file.write(board_str + "\n\n")
         current_player = state.get_player_order()
@@ -67,10 +65,10 @@ def play(model, next_actions):
             action = np.random.choice(state.all_legal_actions(), p=scores)  # 根据概率分布挑选动作
         else:            
             action_count = 0
-            print("r:", round, ", ", end="")
+            #print("r:", round, ", ", end="")
             action, action_count = next_action(state, action_count)  # 取得动作
-            if round < 15:
-                action_counts14 += action_count
+            if round < 12:
+                action_counts0to11 += action_count
             else:
                 action_counts += action_count
             policies = [0] * DN_OUTPUT_SIZE
@@ -107,8 +105,8 @@ def play(model, next_actions):
 
  # 在訓練資料中增加價值(這場分出勝負後將結果當作價值存入history)
     values = state.finish()  # 傳回一個包含三個玩家结果的串列
-    print("avg action_counts14:", action_counts14/15)
-    print("avg_action_counts:", action_counts/69)
+    #print("avg action_counts0to11:", action_counts0to11/12)
+    #print("avg_action_counts:", action_counts/72)
     #value = first_player_value(state)
     for i in range(len(history)):   # i == 0 ~ 83
         #history[i][2] = values      # 將包含三個玩家結果的串列作為訓練的標籤
@@ -134,7 +132,7 @@ def self_play():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE).to(device)
     history = []
-    model_path = './model/1116maxn/22layers/best.pt'
+    model_path = './model/1201/22layers/best.pt'
     model = torch.jit.load(model_path)
 
     # model.load_state_dict(torch.load(model_path, map_location=device))
@@ -142,7 +140,7 @@ def self_play():
     maxn = maxn_action(depth=3)
     pv_mcts = pv_mcts_action(model, SP_TEMPERATURE)
     random = random_choose()
-    strategies = [random, random, random]  # 可以根据需要修改这里的策略组合
+    strategies = [maxn, maxn, maxn]  # 可以根据需要修改这里的策略组合
         
     strategy_permutations = list(permutations(strategies))
     total_games_played = 0
@@ -159,7 +157,7 @@ def self_play():
         
     print('')
     write_data(history)     
-    #save_history_to_text_file(history)  # 保存历史记录到文本文件 
+    save_history_to_text_file(history)  # 保存历史记录到文本文件 
     selfplay_time = time.time() - start_time 
     print("time: ", selfplay_time, "s")
 

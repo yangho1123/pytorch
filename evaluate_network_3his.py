@@ -5,12 +5,12 @@ from shutil import copy
 import time
 import multiprocessing
 
-EN_GAME_COUNT = 60
-EN_TEMPERATURE = 1.0  
+EN_GAME_COUNT = 25
+EN_TEMPERATURE = 0  
 
 
 def update_best_player():
-    copy('./model/1116maxn/22layers/best_val.pt', './model/1116maxn/22layers/best.pt')
+    copy('./model/1201/22layers/best_val.pt', './model/1201/22layers/best.pt')
     print('Change BestPlayer')
 
 def calculate_points(state):    
@@ -32,8 +32,8 @@ def evaluate_network(index, points_latest, points_best, no1_latest, no1_best):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 载入模型
-    model_latest = torch.jit.load('./model/lab/1201/22layers/best.pt').to(device)
-    model_best = torch.jit.load('./model/1106/40layers/best_val.pt').to(device)
+    model_latest = torch.jit.load('./model/1201/22layers/best.pt').to(device)
+    model_best = torch.jit.load('./model/1201/22layers/best_val.pt').to(device)
     # 評估模式
     # model_latest.eval()
     # model_best.eval()

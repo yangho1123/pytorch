@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import contextlib
 
-RN_EPOCHS = 90     # 訓練次數
+RN_EPOCHS = 5     # 訓練次數
 
 def augment_board(board, policy):
     board_size = 11 * 11  # 假设棋盘是 11x11
@@ -101,7 +101,7 @@ def train_network():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE).to(device)
-    model = torch.jit.load('./model/1116maxn/22layers/best.pt').to(device)
+    model = torch.jit.load('./model/1201/22layers/best.pt').to(device)
     model.train()
     
     optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
@@ -201,7 +201,7 @@ def train_network():
                 patience_counter = 0
                 model.eval()
                 script_model = torch.jit.script(model)
-                script_model.save('./model/1116maxn/22layers/best_val.pt')
+                script_model.save('./model/1201/22layers/best_val.pt')
                 print(" - Saved best model")
             else:
                 patience_counter += 1
@@ -242,7 +242,7 @@ def train_network():
     try:
         model.eval()
         script_model = torch.jit.script(model)
-        script_model.save('./model/1116maxn/22layers/latest.pt')
+        script_model.save('./model/1201/22layers/latest.pt')
         print("Final model saved successfully.")
     except Exception as e:
         print(f"Failed to save the final model due to an error: {e}")

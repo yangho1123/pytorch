@@ -27,9 +27,9 @@ def load_data(last_n=4):
     print("Total games loaded:", len(history))
     return history
 
-def prepare_data(history, steps=7):
+def prepare_data(history, steps=8):
     prepared_data = []
-    # 假设每个状态都有4个通道，每个通道的形状为11x11    
+    # 假设每个状态都有5个通道，每个通道的形状为11x11    
     zero_state = np.zeros((5, 11, 11))
     for i in range(steps, len(history)):
         # 组装当前步骤和前7步的状态
