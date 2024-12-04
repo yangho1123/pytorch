@@ -588,25 +588,34 @@ class State:
 
 
 # 隨機選擇動作
-def random_action(state):
-    legal_actions = state.all_legal_actions()
-    return legal_actions[random.randint(0, len(legal_actions)-1)]
+def random_choose():
+    secure_random = random.SystemRandom()  # 使用系統級隨機數生成器
+    def random_action(state, action_count=0):
+        legal_actions = state.all_legal_actions()
+        action_count = len(legal_actions)
+        #print("actions:", action_count)
+        random.shuffle(legal_actions)      
+        return legal_actions[secure_random.randint(0, len(legal_actions)-1)], action_count
+    return random_action
 
 # maxn方法產生走步
 def maxn_action(depth):
-    def maxn_action(state):
+    def maxn_action(state, action_count):
         # updatePath(state)
         state.updateWeight()
-        printWeightTable(state)
+        # printWeightTable(state)
         save_state_to_file(state)
-        if state.depth < 8: #前8步隨機 
+        if state.depth < 9: #前9步隨機 
+            random_action = random_choose()
             return random_action(state)        
         if state.is_done():
             return None  # 終局時沒有可選動作
         best_scores = [float('-inf')] * 3  # 初始化為負無窮
         best_action = None
         current_player = state.get_player_order()
-        actions = state.all_legal_actions() # 有分組則用state.legal_actions()  
+        actions = state.all_legal_actions() # 有分組則用state.legal_actions()
+        action_count = len(actions)
+        #print("actions:", action_count)   
         if depth > 3:
             # Parallel version
             if len(actions) == 0:
@@ -631,11 +640,7 @@ def maxn_action(depth):
                 best_action = actions[0]       
         else:   
             # normal version
-            for action in actions:               
-                # print("depth:", state.depth)
-                # print(state.WeightTable)
-                # if state.depth > 10:
-                #     sys.exit()
+            for action in actions:                
                 new_state = state.next(action)
                 scores = maxn(new_state, depth - 1, bound=100)
                 # print("scores:", scores)
@@ -644,7 +649,7 @@ def maxn_action(depth):
                     best_scores = scores
                     best_action = action            
         updatePath(state)
-        return best_action
+        return best_action, action_count
     return maxn_action
 
 def maxn(state, depth, bound):    
@@ -674,6 +679,7 @@ def maxn_actionnw(depth):
     def maxn_actionnw(state):
         # updatePath(state)
         if state.depth < 8: #前8步隨機 
+            random_action = random_choose()
             return random_action(state)        
         if state.is_done():
             return 121  # 終局時沒有可選動作
@@ -833,9 +839,9 @@ if __name__ == '__main__': # 若該程式為主程式就會執行，若是被其
     state = State()                             # 開始一局新遊戲
     strategies = [                              # 設定三位玩家的策略
         # lambda state: maxn_action(state, depth=3),        
-        random_action,
-        random_action,
-        random_action
+        random_choose,
+        random_choose,
+        random_choose
     ]  # 玩家1用MaxN，玩家2用model，玩家3用隨機
     
     player = 0  # 從0號玩家開始

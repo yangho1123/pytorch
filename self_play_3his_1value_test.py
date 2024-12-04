@@ -1,5 +1,5 @@
 from game import State
-from game_nogroup import maxn_action
+from game_nogroup import maxn_action, random_choose
 from game_nogroup import FlipTable
 import torch
 from pv_mcts_3his_1value_test import pv_mcts_scores, pv_mcts_action
@@ -11,7 +11,7 @@ import  numpy as np
 import pickle
 import os, time
 
-SP_GAME_COUNT = 200     # 自我對弈的局數
+SP_GAME_COUNT = 1     # 自我對弈的局數
 SP_TEMPERATURE = 1.0    #波茲曼分佈的溫度參數
 # 目前是用pv-mcts vs pv-mcts vs pv-mcts，下面可以修改成maxn vs maxn vs maxn
 FLIPTABLE = FlipTable
@@ -41,13 +41,21 @@ def save_history_to_text_file(history, filename="game_history.txt"):
             file.write("Value: " + value_str + "\n")
             file.write("-" * 40 + "\n\n")
 
-def play(model, next_actions):            # 進行一次完整對戰
+def play(model, next_actions): 
+    filename="state8.txt"
     history = []
     state = State()         # 產生新的對局   
-    
+    round = 0
+    action_counts14 = 0
+    action_counts = 0
     while True:
         if state.is_done():
             break
+        if round == 9:
+            with open(filename, "a") as file:
+                file.write(f"Step {round+1}:\n")
+                board_str = str(state)
+                file.write(board_str + "\n\n")
         current_player = state.get_player_order()
         next_action = next_actions[current_player]  # 获取当前玩家的行动函数
         
@@ -57,8 +65,14 @@ def play(model, next_actions):            # 進行一次完整對戰
             for action, policy in zip(state.all_legal_actions(), scores):
                 policies[action] = policy
             action = np.random.choice(state.all_legal_actions(), p=scores)  # 根据概率分布挑选动作
-        else:
-            action = next_action(state)  # 取得动作
+        else:            
+            action_count = 0
+            print("r:", round, ", ", end="")
+            action, action_count = next_action(state, action_count)  # 取得动作
+            if round < 15:
+                action_counts14 += action_count
+            else:
+                action_counts += action_count
             policies = [0] * DN_OUTPUT_SIZE
             policies[action] = 1  # 转换成概率分布，才能存进history
         
@@ -88,11 +102,13 @@ def play(model, next_actions):            # 進行一次完整對戰
         # 将所有部分重塑为(5, 11, 11)，其中包括3个棋子状态和1个玩家通道和一個翻轉次數表
         state_representation = np.array(state_representation).reshape(5, 11, 11)
         history.append([state_representation, policies, None])
-        state = state.next(action)  # 更新狀態       
+        state = state.next(action)  # 更新狀態
+        round += 1       
 
  # 在訓練資料中增加價值(這場分出勝負後將結果當作價值存入history)
     values = state.finish()  # 傳回一個包含三個玩家结果的串列
-    
+    print("avg action_counts14:", action_counts14/15)
+    print("avg_action_counts:", action_counts/69)
     #value = first_player_value(state)
     for i in range(len(history)):   # i == 0 ~ 83
         #history[i][2] = values      # 將包含三個玩家結果的串列作為訓練的標籤
@@ -125,7 +141,8 @@ def self_play():
     model.eval()
     maxn = maxn_action(depth=3)
     pv_mcts = pv_mcts_action(model, SP_TEMPERATURE)
-    strategies = [maxn, maxn, pv_mcts]  # 可以根据需要修改这里的策略组合
+    random = random_choose()
+    strategies = [random, random, random]  # 可以根据需要修改这里的策略组合
         
     strategy_permutations = list(permutations(strategies))
     total_games_played = 0
