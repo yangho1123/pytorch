@@ -1,4 +1,4 @@
-from game import State
+from game_nogroup import State
 from game_nogroup import maxn_action, random_choose
 from game_nogroup import FlipTable
 import torch
@@ -11,7 +11,7 @@ import  numpy as np
 import pickle
 import os, time
 
-SP_GAME_COUNT = 1     # 自我對弈的局數
+SP_GAME_COUNT = 100     # 自我對弈的局數
 SP_TEMPERATURE = 1.0    #波茲曼分佈的溫度參數
 # 目前是用pv-mcts vs pv-mcts vs pv-mcts，下面可以修改成maxn vs maxn vs maxn
 FLIPTABLE = FlipTable
@@ -28,16 +28,18 @@ def first_player_value(ended_state):  # 計算先手的局勢價值
 # 印出history檢查用
 def save_history_to_text_file(history, filename="game_history.txt"):
     with open(filename, "w") as file:
-        for data in history:
+        for step, data in enumerate(history):
             state_repr, policies, value = data
-            # 将状态矩阵、策略和值转换为字符串
-            state_str = "\n".join([' '.join(map(str, row)) for row in state_repr])  # 转换状态矩阵为字符串
-            policies_str = ' '.join(map(str, policies))  # 转换策略为字符串
-            value_str = str(value)  # 转换值为字符串
+            # 将状态矩阵、策略和值格式化为字符串
+            state_str = "\n".join([' '.join(map(str, row)) for row in state_repr])
+            policies_str = ' '.join(map(str, policies))
+            value_str = str(value)
             # 写入文件
-            file.write(state_str + "\n")  # 写入状态矩阵
-            file.write(policies_str + "\n")  # 写入策略
-            file.write(value_str + "\n\n")  # 写入值并添加空行分隔
+            file.write(f"Step {step + 1}:\n")
+            file.write("State:\n" + state_str + "\n")
+            file.write("Policies: " + policies_str + "\n")
+            file.write("Value: " + value_str + "\n")
+            file.write("-" * 40 + "\n\n")
 
 def play(model, next_actions): 
     filename="12步結束之後盤面(輪到紅色還沒下).txt"
@@ -49,11 +51,11 @@ def play(model, next_actions):
     while True:
         if state.is_done():
             break
-        if round == 12:         # 印出round11結束後(第13步還沒下棋)的盤面
-            with open(filename, "a") as file:
-                file.write(f"Round {round+1}:\n")
-                board_str = str(state)
-                file.write(board_str + "\n\n")
+        # if round == 12:         # 印出round11結束後(第13步還沒下棋)的盤面
+        #     with open(filename, "a") as file:
+        #         file.write(f"Round {round+1}:\n")
+        #         board_str = str(state)
+        #         file.write(board_str + "\n\n")
         current_player = state.get_player_order()
         next_action = next_actions[current_player]  # 获取当前玩家的行动函数
         
@@ -119,12 +121,19 @@ def play(model, next_actions):
      
     return history
 
-def write_data(history):        # 用檔案將自我對弈產生的訓練資料存起來
+def write_data(history, game_lengths):        # 用檔案將自我對弈產生的訓練資料存起來
     now = datetime.now()
     os.makedirs('../torchdata/', exist_ok=True)
-    path = '../torchdata/{:04}{:02}{:02}{:02}{:02}{:02}.history'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
-    with open(path, mode='wb') as f:
+    history_path = '../torchdata/{:04}{:02}{:02}{:02}{:02}{:02}.history'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+    lengths_path = history_path.replace('.history', '_lengths.pkl')  # 生成對應的 game_lengths 檔案名稱
+    # 保存 history
+    with open(history_path, mode='wb') as f:
         pickle.dump(history, f)
+    print(f"History saved to: {history_path}")
+    # 保存 game_lengths
+    with open(lengths_path, mode='wb') as f:
+        pickle.dump(game_lengths, f)
+    print(f"Game lengths saved to: {lengths_path}")
 
 def self_play():
     start_time = time.time()
@@ -132,7 +141,8 @@ def self_play():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE).to(device)
     history = []
-    model_path = './model/1201/22layers/best.pt'
+    game_lengths = []  # 新增列表來記錄每場比賽的回合數
+    model_path = './model/1202/22layers/best.pt'
     model = torch.jit.load(model_path)
 
     # model.load_state_dict(torch.load(model_path, map_location=device))
@@ -140,7 +150,7 @@ def self_play():
     maxn = maxn_action(depth=3)
     pv_mcts = pv_mcts_action(model, SP_TEMPERATURE)
     random = random_choose()
-    strategies = [maxn, maxn, maxn]  # 可以根据需要修改这里的策略组合
+    strategies = [pv_mcts, pv_mcts, pv_mcts]  # 可以根据需要修改这里的策略组合
         
     strategy_permutations = list(permutations(strategies))
     total_games_played = 0
@@ -149,6 +159,7 @@ def self_play():
         for strategy in strategy_permutations:
             h = play(model, strategy)
             history.extend(h)
+            game_lengths.append(len(h))  # 記錄這場比賽的回合數
             total_games_played += 1
             print(f'\rselfplay {total_games_played}/{SP_GAME_COUNT}', end='')
             
@@ -156,8 +167,8 @@ def self_play():
                 break  
         
     print('')
-    write_data(history)     
-    save_history_to_text_file(history)  # 保存历史记录到文本文件 
+    write_data(history, game_lengths)     
+    #save_history_to_text_file(history)  # 保存历史记录到文本文件 
     selfplay_time = time.time() - start_time 
     print("time: ", selfplay_time, "s")
 

@@ -604,7 +604,7 @@ def maxn_action(depth):
         # updatePath(state)
         state.updateWeight()
         # printWeightTable(state)
-        save_state_to_file(state)
+        #save_state_to_file(state)
         if state.depth < 12: #前12步隨機(depth:0~11) 
             random_action = random_choose()
             return random_action(state)        

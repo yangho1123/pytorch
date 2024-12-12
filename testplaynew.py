@@ -6,7 +6,7 @@ import time
 import statistics
 import numpy as np
 
-TEMPERATURE = 1.0
+TEMPERATURE = 0
 
 def calculate_points(state):
     return state.finish()
