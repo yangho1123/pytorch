@@ -5,12 +5,12 @@ from shutil import copy
 import time
 import multiprocessing
 
-EN_GAME_COUNT = 25
+EN_GAME_COUNT = 27
 EN_TEMPERATURE = 0  
 
 
 def update_best_player():
-    copy('./model/1201/22layers/best_val.pt', './model/1201/22layers/best.pt')
+    copy('./model/1217/22layers/best_val.pt', './model/1217/22layers/best.pt')
     print('Change BestPlayer')
 
 def calculate_points(state):    
@@ -32,8 +32,8 @@ def evaluate_network(index, points_latest, points_best, no1_latest, no1_best):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 载入模型
-    model_latest = torch.jit.load('./model/1201/22layers/best.pt').to(device)
-    model_best = torch.jit.load('./model/1201/22layers/best_val.pt').to(device)
+    model_latest = torch.jit.load('./model/1217/22layers/best.pt').to(device)   #lab pv-mcts 1000場訓練後的
+    model_best = torch.jit.load('./model/1217/22layers/best_val.pt').to(device) # 學弟maxn 2000場訓練後的
     # 評估模式
     # model_latest.eval()
     # model_best.eval()
@@ -146,7 +146,7 @@ def evaluate_network_multiprocess(num_processes, update=0):
     
     print(f"score: latest({total_point0}), no.1({total_no1_0}) vs best({total_point1}), no.1({total_no1_1})")
     if total_point0 > total_point1:
-        #update_best_player()
+        update_best_player()
         update = 1  #是否有更新
     print(f"evaluate time: {end - start:.2f} seconds")
     

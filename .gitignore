@@ -2,3 +2,6 @@
 *.txt
 model/
 __pycache__/
+toexe/
+maxntoexe/
+onlymodelpred/

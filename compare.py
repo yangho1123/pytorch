@@ -26,7 +26,7 @@ def load_data(last_n=5):
     return history
 
 def load(data_path='../torchdata/'):
-    last_n = 5
+    last_n = 1
     history_paths = sorted(Path(data_path).glob('*.history'))
     histories = []
     game_lengths = []

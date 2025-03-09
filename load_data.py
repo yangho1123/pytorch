@@ -8,7 +8,7 @@ import pickle, os
 from datetime import datetime
 import matplotlib.pyplot as plt
 
-def load_data(last_n=4):    
+def load_data(last_n):    
     history_paths = sorted(Path('../torchdata/').glob('*.history'))    
     history = []    
     for path in history_paths[-last_n:]:
@@ -25,6 +25,23 @@ def load_data(last_n=4):
     #     print("Value:", example[2])                        # 輸出價值
 
     print("Total games loaded:", len(history))
+    return history
+
+def load_data_from_file(last_n, limit):         # 只需要提取某個檔案的前limit筆資料
+    history_paths = sorted(Path('../torchdata/').glob('*.history'))   
+    history = [] 
+    for path in history_paths[-last_n:]:
+        with path.open(mode='rb') as f:
+            batch_data = pickle.load(f)  # 假设数据是一个列表
+            print("len of data:", len(batch_data))
+            history = batch_data[:limit]  # 仅加载前 limit 条数据
+            print(f"Loaded {len(history)} entries from: {path}")
+    # if history:
+    #     print("Example data structure:")
+    #     example = history[83997]
+    #     print("Board state:", np.array(example[0]))  # 输出棋盤狀態的形狀
+    #     print("Policy:", np.array(example[1]).shape)       # 输出策略的形狀
+    #     print("Value:", example[2])           
     return history
 
 def prepare_data(history, steps=8):

@@ -595,61 +595,37 @@ def random_choose():
         action_count = len(legal_actions)
         #print("actions:", action_count)
         random.shuffle(legal_actions)      
-        return legal_actions[secure_random.randint(0, len(legal_actions)-1)], action_count
+        return legal_actions[secure_random.randint(0, len(legal_actions)-1)]
     return random_action
 
 # maxn方法產生走步
 def maxn_action(depth):
-    def maxn_action(state, action_count):
+    def maxn_action(state):
         # updatePath(state)
         state.updateWeight()
         # printWeightTable(state)
         #save_state_to_file(state)
         if state.depth < 12: #前12步隨機(depth:0~11) 
-            random_action = random_choose()
-            return random_action(state)        
+             random_action = random_choose()
+             return random_action(state)        
         if state.is_done():
             return None  # 終局時沒有可選動作
         best_scores = [float('-inf')] * 3  # 初始化為負無窮
         best_action = None
         current_player = state.get_player_order()
         actions = state.all_legal_actions() # 有分組則用state.legal_actions()
-        action_count = len(actions)
-        #print("actions:", action_count)   
-        if depth > 3:
-            # Parallel version
-            if len(actions) == 0:
-                return None
-            if len(actions)>1:
-                try:
-                    with mp.Pool(processes=len(actions)) as pool:
-                        # tasks = [(state.next(action), depth-1, 100) for action in actions]
-                        tasks = list()
-                        for action in actions:
-                            next_state = copy.deepcopy(state)
-                            next_state = next_state.next(action)
-                            tasks.append((next_state, depth-1, 100))
-                        results = pool.starmap(maxn, tasks)
-                    results = [result[current_player] for result in results]
-                    best_action = actions[np.argmax(np.array(results))]
-                except Exception as e:
-                    print(e)
-                    print(actions)
-                    print(tasks)
-            else:
-                best_action = actions[0]       
-        else:   
-            # normal version
-            for action in actions:                
-                new_state = state.next(action)
-                scores = maxn(new_state, depth - 1, bound=100)
-                # print("scores:", scores)
-                # 對於當前玩家，找到最高分的走步
-                if scores[current_player] > best_scores[current_player]:
-                    best_scores = scores
-                    best_action = action            
+           
+        # normal version
+        for action in actions:                
+            new_state = state.next(action)
+            scores = maxn(new_state, depth - 1, bound=100)
+            # print("scores:", scores)
+            # 對於當前玩家，找到最高分的走步
+            if scores[current_player] > best_scores[current_player]:
+                best_scores = scores
+                best_action = action            
         updatePath(state)
-        return best_action, action_count
+        return best_action
     return maxn_action
 
 def maxn(state, depth, bound):    

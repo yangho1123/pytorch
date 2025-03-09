@@ -1,7 +1,7 @@
 from self_play_3his_1value_test import self_play
 from train_network_3his import train_network
 from evaluate_network_3his import evaluate_network_multiprocess, update_best_player, EN_GAME_COUNT
-from load_data import load_data, prepare_data, write_prepared_data
+from load_data import load_data, prepare_data, write_prepared_data, load_data_from_file
 import time
 import multiprocessing
 
@@ -14,7 +14,8 @@ def self_play_wrapper(i):
     print("self_play() time: {:.2f} seconds".format(time.time() - start_time))
 
 def prepare_and_write():
-    history = load_data(4)   #載入歷史資料(筆數)
+    # history = load_data_from_file(1, 83997)   #載入歷史資料(前1000筆)
+    history = load_data(1)
     prepared_history = prepare_data(history)    # 重塑歷史資料
     write_prepared_data(prepared_history)   # 寫入重塑好的歷史資料檔案
 
@@ -32,18 +33,18 @@ if __name__ == '__main__':
         print("=================")
         print("train cycle: ", i)
         print("=================")
-        num_processes = 4  # 決定你想要運行多少個進程
+        num_processes = 5  # 決定你想要運行多少個進程
         processes = []
         for j in range(num_processes):
             p = multiprocessing.Process(target=self_play_wrapper, args=(j,))
             p.start()
             processes.append(p)
 
-        for p in processes:
-            p.join()
+        # for p in processes:
+        #     p.join()
         # prepare_and_write()
-        # # 多進程 self_play 結束後，執行訓練        
-        # train()
+        # 多進程 self_play 結束後，執行訓練        
+        train()
         # # 多進程執行evaluate
         # evaluate_processes = 4
         # _, _, _, _, update = evaluate_network_multiprocess(evaluate_processes)

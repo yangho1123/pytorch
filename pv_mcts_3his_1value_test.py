@@ -5,7 +5,7 @@ from math import sqrt
 import torch    
 import numpy as np
 
-PV_EVALUATE_COUNT = 500
+PV_EVALUATE_COUNT = 1600
 FLIPTABLE = FlipTable
 def get_device():
     if torch.cuda.is_available():
@@ -51,9 +51,9 @@ def predict(model, state, path): # 利用對偶網路做下一步的預測
             zero_state = torch.zeros((5, 121))
             board_states.append(zero_state)
                
-    # Stack all states to create a tensor of shape [8, 5, 11, 11]    
+    # Stack all states to create a tensor of shape [9, 5, 11, 11]    
     x = torch.stack(board_states).float()   # Ensure float type for model processing
-    x = x.view(1, 5 * (history_length + 1), 11, 11)            # Reshape to [1, 40, 11, 11]
+    x = x.view(1, 5 * (history_length + 1), 11, 11)            # Reshape to [1, 45, 11, 11]
     #print("Input tensor shape:", x.shape)  # 打印x的形狀來驗證
     x = x.to(get_device())  # 確保數據在正確的設備上    
     model = model.to(get_device())
@@ -161,10 +161,16 @@ def pv_mcts_scores(model, state, temperature, add_noise=True, dirichlet_alpha=0.
 
 def pv_mcts_action(model, temperature=0): # 回傳函式
     def pv_mcts_action(state):
-        scores = pv_mcts_scores(model, state, temperature, True)
+        scores = pv_mcts_scores(model, state, temperature, False)
         return np.random.choice(state.all_legal_actions(), p = scores)
     return pv_mcts_action
 
+def model_score(model):
+    def score(state, path):
+        reversed_path = path[::-1]
+        policy, _ = predict(model, state, reversed_path)
+        return np.random.choice(state.all_legal_actions(), p = policy)  # 根據每個動作的機率挑選
+    return score
 
 if __name__ == "__main__":
     model = torch.jit.load('./model/best.pt')

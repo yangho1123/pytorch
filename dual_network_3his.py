@@ -107,5 +107,5 @@ if __name__ == '__main__':
     # Initialize model with global variables
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE)
     script_model = torch.jit.script(model)
-    script_model.save('./model/1201/22layers/best.pt')
+    script_model.save('./model/1214/22layers/best.pt')
     

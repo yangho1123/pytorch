@@ -12,7 +12,7 @@ import pickle
 import os, time
 
 SP_GAME_COUNT = 100     # 自我對弈的局數
-SP_TEMPERATURE = 1.0    #波茲曼分佈的溫度參數
+SP_TEMPERATURE = 0    #波茲曼分佈的溫度參數
 # 目前是用pv-mcts vs pv-mcts vs pv-mcts，下面可以修改成maxn vs maxn vs maxn
 FLIPTABLE = FlipTable
 def first_player_value(ended_state):  # 計算先手的局勢價值
@@ -20,11 +20,11 @@ def first_player_value(ended_state):  # 計算先手的局勢價值
         return -1 if ended_state.is_first_player() else 1
     return 0
 # 印出盤面檢查用
-# def save_board_to_file(state, step_number, filename="game_states.txt"):
-#     with open(filename, "a") as file:
-#         file.write(f"Step {step_number}:\n")
-#         board_str = str(state)  # 假設 State 類有一個 __str__ 方法可以返回棋盤的字符串表示
-#         file.write(board_str + "\n\n")
+def save_board_to_file(state, step_number, filename="game_states.txt"):
+    with open(filename, "a") as file:
+        file.write(f"Step {step_number}:\n")
+        board_str = str(state)  # 假設 State 類有一個 __str__ 方法可以返回棋盤的字符串表示
+        file.write(board_str + "\n\n")
 # 印出history檢查用
 def save_history_to_text_file(history, filename="game_history.txt"):
     with open(filename, "w") as file:
@@ -66,13 +66,10 @@ def play(model, next_actions):
                 policies[action] = policy
             action = np.random.choice(state.all_legal_actions(), p=scores)  # 根据概率分布挑选动作
         else:            
-            action_count = 0
+            #action_count = 0
             #print("r:", round, ", ", end="")
-            action, action_count = next_action(state, action_count)  # 取得动作
-            if round < 12:
-                action_counts0to11 += action_count
-            else:
-                action_counts += action_count
+            action = next_action(state)  # 取得动作
+            
             policies = [0] * DN_OUTPUT_SIZE
             policies[action] = 1  # 转换成概率分布，才能存进history
         
@@ -107,8 +104,6 @@ def play(model, next_actions):
 
  # 在訓練資料中增加價值(這場分出勝負後將結果當作價值存入history)
     values = state.finish()  # 傳回一個包含三個玩家结果的串列
-    #print("avg action_counts0to11:", action_counts0to11/12)
-    #print("avg_action_counts:", action_counts/72)
     #value = first_player_value(state)
     for i in range(len(history)):   # i == 0 ~ 83
         #history[i][2] = values      # 將包含三個玩家結果的串列作為訓練的標籤
@@ -142,7 +137,7 @@ def self_play():
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE).to(device)
     history = []
     game_lengths = []  # 新增列表來記錄每場比賽的回合數
-    model_path = './model/1202/22layers/best.pt'
+    model_path = './model/250225/22layers/best_val.pt'
     model = torch.jit.load(model_path)
 
     # model.load_state_dict(torch.load(model_path, map_location=device))
@@ -168,7 +163,7 @@ def self_play():
         
     print('')
     write_data(history, game_lengths)     
-    #save_history_to_text_file(history)  # 保存历史记录到文本文件 
+    save_history_to_text_file(history)  # 保存历史记录到文本文件 
     selfplay_time = time.time() - start_time 
     print("time: ", selfplay_time, "s")
 

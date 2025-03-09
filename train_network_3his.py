@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import contextlib
 
-RN_EPOCHS = 5     # 訓練次數
+RN_EPOCHS = 10     # 訓練次數
 
 def augment_board(board, policy):
     board_size = 11 * 11  # 假设棋盘是 11x11
@@ -94,14 +94,17 @@ def train_network():
     
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    # 非隨機分割：按順序切分數據集
+    train_dataset = torch.utils.data.Subset(dataset, list(range(train_size)))
+    val_dataset = torch.utils.data.Subset(dataset, list(range(train_size, len(dataset))))
 
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE).to(device)
-    model = torch.jit.load('./model/1201/22layers/best.pt').to(device)
+    model = torch.jit.load('./model/1217/22layers/best.pt').to(device)
     model.train()
     
     optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
@@ -201,7 +204,7 @@ def train_network():
                 patience_counter = 0
                 model.eval()
                 script_model = torch.jit.script(model)
-                script_model.save('./model/1201/22layers/best_val.pt')
+                script_model.save('./model/1217/22layers/best_val.pt')
                 print(" - Saved best model")
             else:
                 patience_counter += 1
@@ -242,7 +245,7 @@ def train_network():
     try:
         model.eval()
         script_model = torch.jit.script(model)
-        script_model.save('./model/1201/22layers/latest.pt')
+        script_model.save('./model/1217/22layers/latest.pt')
         print("Final model saved successfully.")
     except Exception as e:
         print(f"Failed to save the final model due to an error: {e}")
