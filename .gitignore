@@ -3,5 +3,6 @@
 model/
 __pycache__/
 toexe/
+lab/
 maxntoexe/
 onlymodelpred/

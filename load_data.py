@@ -27,6 +27,30 @@ def load_data(last_n):
     print("Total games loaded:", len(history))
     return history
 
+def load_data_folders(last_n=9999, folders=['../torchdata', '../835', '../121', '../250310']):    
+    history_paths = []
+    
+    # 從每個資料夾收集 .history 檔案路徑
+    for folder in folders:
+        folder_path = Path(folder)
+        history_paths.extend(sorted(folder_path.glob('*.history')))
+    
+    history = []
+    print(f"Found {len(history_paths)} history files across folders: {folders}")
+    
+    # 只取最後 last_n 筆檔案
+    selected_paths = sorted(history_paths)[-last_n:]
+
+    for path in selected_paths:
+        with path.open(mode='rb') as f:
+            batch_data = pickle.load(f)
+            history.extend(batch_data)
+            print("Loaded:", path)
+    
+    print("Total data records loaded:", len(history))
+    return history
+
+
 def load_data_from_file(last_n, limit):         # 只需要提取某個檔案的前limit筆資料
     history_paths = sorted(Path('../torchdata/').glob('*.history'))   
     history = [] 
@@ -44,12 +68,12 @@ def load_data_from_file(last_n, limit):         # 只需要提取某個檔案的
     #     print("Value:", example[2])           
     return history
 
-def prepare_data(history, steps=8):
+def prepare_data(history, steps=11):
     prepared_data = []
     # 假设每个状态都有5个通道，每个通道的形状为11x11    
     zero_state = np.zeros((5, 11, 11))
     for i in range(steps, len(history)):
-        # 组装当前步骤和前7步的状态
+        # 组装当前步骤和前11步的状态
         state_histories = []
         for j in range(steps + 1):  # steps + 1 to include the current step
             index = i - j

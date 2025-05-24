@@ -13,6 +13,10 @@ PV_EVALUATE_COUNT = 1600
 FLIPTABLE = FlipTable
 # 添加批处理大小配置
 BATCH_SIZE = 8  # 可以调整这个值，根据GPU内存大小
+# 正規化FLIPTABLE到0-1範圍
+FLIPTABLE_MIN = min(x for x in FLIPTABLE if x != -1)  # 忽略-1（非法位置）
+FLIPTABLE_MAX = max(FLIPTABLE)
+NORMALIZED_FLIPTABLE = [(x - FLIPTABLE_MIN) / (FLIPTABLE_MAX - FLIPTABLE_MIN) if x != -1 else -1 for x in FLIPTABLE]
 
 def get_device():
     if torch.cuda.is_available():
@@ -49,7 +53,8 @@ def prepare_input_tensor(state, path, history_length=11):
             ])
             # 创建玩家通道
             player_channel = torch.full((121,), current_player, dtype=torch.float32)
-            FLIPTABLE_tensor = torch.tensor(FLIPTABLE, dtype=torch.float32).unsqueeze(0)
+            # 使用正規化的FLIPTABLE
+            FLIPTABLE_tensor = torch.tensor(NORMALIZED_FLIPTABLE, dtype=torch.float32).unsqueeze(0)
             full_state_tensor = torch.cat((state_tensor, player_channel.unsqueeze(0), FLIPTABLE_tensor), dim=0)
             board_states.append(full_state_tensor)
         else:

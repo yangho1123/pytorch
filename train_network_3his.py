@@ -11,8 +11,22 @@ import time
 import matplotlib.pyplot as plt
 from datetime import datetime
 import contextlib
+import random
 
-RN_EPOCHS = 10     # 訓練次數
+# 设置随机种子以确保可重复性
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+set_seed(42)  # 设置随机种子
+
+RN_EPOCHS = 300     # 訓練次數
 
 def augment_board(board, policy):
     board_size = 11 * 11  # 假设棋盘是 11x11
@@ -76,35 +90,70 @@ def train_network():
 
     history = load_prepare_data()   # 載入重塑好的歷史資料
     print("Total number of data points:", len(history))
-    xs, y_policies, y_values = zip(*history)
+    # xs, y_policies, y_values = zip(*history)
     
-    # # 在尝试转换之前，先检查数据
-    # print("Example of raw state data (xs[0]):", xs[0])
-    # print("Type of xs[0]:", type(xs[0]))
-    # print("Example shape (if applicable):", np.array(xs[0]).shape if isinstance(xs[0], (list, np.ndarray)) else "N/A")
+    # # # 在尝试转换之前，先检查数据
+    # # print("Example of raw state data (xs[0]):", xs[0])
+    # # print("Type of xs[0]:", type(xs[0]))
+    # # print("Example shape (if applicable):", np.array(xs[0]).shape if isinstance(xs[0], (list, np.ndarray)) else "N/A")
     
-    time_steps, channels, high, width = DN_INPUT_SHAPE
-    new_channels = time_steps * channels
-    xs = np.array(xs)
-    xs = xs.reshape(len(xs), new_channels, high, width)    
-    xs = torch.tensor(np.array(xs), dtype=torch.float32)
-    y_policies = torch.tensor(np.array(y_policies), dtype=torch.float32)
-    y_values = torch.tensor(np.array(y_values), dtype=torch.float32)
-    dataset = TensorDataset(xs, y_policies, y_values)
+    # time_steps, channels, high, width = DN_INPUT_SHAPE
+    # new_channels = time_steps * channels
+    # xs = np.array(xs)
+    # xs = xs.reshape(len(xs), new_channels, high, width)    
+    # xs = torch.tensor(np.array(xs), dtype=torch.float32)
+    # y_policies = torch.tensor(np.array(y_policies), dtype=torch.float32)
+    # y_values = torch.tensor(np.array(y_values), dtype=torch.float32)
+    # dataset = TensorDataset(xs, y_policies, y_values)
     
-    train_size = int(0.8 * len(dataset))
-    val_size = len(dataset) - train_size
-    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-    # 非隨機分割：按順序切分數據集
-    train_dataset = torch.utils.data.Subset(dataset, list(range(train_size)))
-    val_dataset = torch.utils.data.Subset(dataset, list(range(train_size, len(dataset))))
+    # train_size = int(0.8 * len(dataset))
+    # val_size = len(dataset) - train_size
+    # # train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    # # 非隨機分割：按順序切分數據集
+    # train_dataset = torch.utils.data.Subset(dataset, list(range(train_size)))
+    # val_dataset = torch.utils.data.Subset(dataset, list(range(train_size, len(dataset))))
 
+    # 计算数据集大小
+    total_size = len(history)
+    train_size = int(0.8 * total_size)
+    val_size = total_size - train_size
+    
+    # 创建数据集类
+    class GameDataset(torch.utils.data.Dataset):
+        def __init__(self, history_data, start_idx, end_idx):
+            self.history_data = history_data
+            self.start_idx = start_idx
+            self.end_idx = end_idx
+            self.time_steps, self.channels, self.high, self.width = DN_INPUT_SHAPE
+            self.new_channels = self.time_steps * self.channels
+            
+        def __len__(self):
+            return self.end_idx - self.start_idx
+            
+        def __getitem__(self, idx):
+            actual_idx = self.start_idx + idx
+            state, policy, value = self.history_data[actual_idx]
+            
+            # 转换state为tensor
+            state = np.array(state)
+            state = state.reshape(self.new_channels, self.high, self.width)
+            state = torch.tensor(state, dtype=torch.float32)
+            
+            # 转换policy和value为tensor
+            policy = torch.tensor(policy, dtype=torch.float32)
+            value = torch.tensor(value, dtype=torch.float32)
+            
+            return state, policy, value
+    
+    # 创建训练集和验证集
+    train_dataset = GameDataset(history, 0, train_size)
+    val_dataset = GameDataset(history, train_size, total_size)
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DualNetwork(DN_INPUT_SHAPE, DN_FILTERS, DN_RESIDUAL_NUM, DN_OUTPUT_SIZE).to(device)
-    model = torch.jit.load('./model/1217/22layers/best.pt').to(device)
+    model = torch.jit.load('./model/250330/22layers/best.pt').to(device)
     model.train()
     
     optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
@@ -204,7 +253,7 @@ def train_network():
                 patience_counter = 0
                 model.eval()
                 script_model = torch.jit.script(model)
-                script_model.save('./model/1217/22layers/best_val.pt')
+                script_model.save('./model/250330/22layers/best_val.pt')
                 print(" - Saved best model")
             else:
                 patience_counter += 1
@@ -245,7 +294,7 @@ def train_network():
     try:
         model.eval()
         script_model = torch.jit.script(model)
-        script_model.save('./model/1217/22layers/latest.pt')
+        script_model.save('./model/250330/22layers/latest.pt')
         print("Final model saved successfully.")
     except Exception as e:
         print(f"Failed to save the final model due to an error: {e}")

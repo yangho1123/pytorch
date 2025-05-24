@@ -1,0 +1,7 @@
+Model,Latest Wins,Total Games,Win Rate
+../model/250326/22layers/best_val.pt,49,120,0.4083333333333333
+../model/250419/22layers/best_val.pt,45,120,0.375
+../model/250430/22layers/best_val.pt,46,120,0.38333333333333336
+../model/250505/22layers/best_val.pt,48,120,0.4
+../model/250505/iter2/best_val.pt,40,120,0.3333333333333333
+../model/250521/best_val.pt,46,120,0.38333333333333336

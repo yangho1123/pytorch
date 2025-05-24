@@ -6,7 +6,7 @@ import torch.nn.functional as F
 # Define model parameters as global variables
 DN_FILTERS = 512        # 改256
 DN_RESIDUAL_NUM = 22    # 改19
-DN_INPUT_SHAPE = (9, 5, 11, 11)
+DN_INPUT_SHAPE = (12, 5, 11, 11)
 DN_OUTPUT_SIZE = 122
 
 class ConvBlock(nn.Module):
